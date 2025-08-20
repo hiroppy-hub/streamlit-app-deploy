@@ -1,4 +1,61 @@
 import streamlit as st
+from dotenv import load_dotenv
+import os
+
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import SystemMessage, HumanMessage
+
+# .envからAPIキーを読み込む
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+# LangChainのChatOpenAIインスタンスを作成
+llm = ChatOpenAI(
+    openai_api_key=OPENAI_API_KEY,
+    model="gpt-3.5-turbo",
+    temperature=0.7,
+)
+
+# 専門家ごとのシステムメッセージ
+EXPERT_SYSTEM_MESSAGES = {
+    "歴史家": "あなたは優秀な歴史家です。分かりやすく、正確に解説してください。",
+    "ITコンサルタント": "あなたは経験豊富なITコンサルタントです。専門的かつ分かりやすく説明してください。",
+    "医師": "あなたは信頼できる医師です。専門知識を活かして丁寧に回答してください。",
+}
+
+def run_llm(user_input: str, expert: str) -> str:
+    """入力テキストと専門家の種類をもとにOpenAI APIで回答を生成"""
+    system_message = SystemMessage(EXPERT_SYSTEM_MESSAGES.get(expert, "あなたは優秀な専門家です。"))
+    human_message = HumanMessage(user_input)
+    response = llm([system_message, human_message])
+    return response.content
+
+# Streamlit UI
+st.title("専門家AIチャットアプリ")
+st.write(
+    """
+    このアプリは、選択した専門家になりきったAIがあなたの質問に回答します。
+    専門家の種類を選び、質問を入力して「送信」ボタンを押してください。
+    """
+)
+
+user_input = st.text_input("質問を入力してください")
+expert = st.radio(
+    "専門家を選択してください",
+    list(EXPERT_SYSTEM_MESSAGES.keys()),
+    index=0
+)
+
+if st.button("送信"):
+    if user_input.strip():
+        with st.spinner("AIが回答中..."):
+            answer = run_llm(user_input, expert)
+        st.markdown("#### 回答")
+        st.write(answer)
+    else:
+        st.warning("質問を入力してください。")
+
+st.divider()
 
 st.title("サンプルアプリ②: 少し複雑なWebアプリ")
 
@@ -43,3 +100,5 @@ if st.button("実行"):
 
         else:
             st.error("身長と体重をどちらも入力してください。")
+
+
